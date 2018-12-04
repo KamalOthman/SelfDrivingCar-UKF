@@ -1,2 +1,2 @@
 # SelfDrivingCar-UKF
-Term 2 / Project 2: Unscented Kalman Filter
+It is a cpp program for Unscented Kalman Filter. This project should be provided with Eigen API, and running the program in the Udacity simulator. Here you can only find the code.
