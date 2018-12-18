@@ -114,6 +114,16 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
         is_initialized_ = true;
         return;
     }
+    double delta_t = (meas_package.timestamp_ - time_us_)/1000000.0;
+    Prediction(delta_t);
+    
+    if (meas_package.sensor_type_ == MeasurementPackage::RADAR) {
+        UpdateRadar(meas_package);
+    }
+    
+    else if (meas_package.sensor_type_ == MeasurementPackage::LASER) {
+        UpdateLidar(meas_package);
+    }
 }
 
 /**
