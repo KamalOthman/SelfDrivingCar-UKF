@@ -7,8 +7,13 @@
 #include <string>
 #include <fstream>
 
+#include <iostream>
+
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
+
+using namespace std;
+using std::vector;
 
 class UKF {
 public:
@@ -66,6 +71,10 @@ public:
 
   ///* Sigma point spreading parameter
   double lambda_;
+    
+  ///* NIS for both measurements
+  vector<double> NIS_lidar;
+  vector<double> NIS_radar;
 
 
   /**
