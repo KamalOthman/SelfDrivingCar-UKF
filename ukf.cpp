@@ -26,7 +26,7 @@ UKF::UKF() {
     P_ = MatrixXd(5, 5);
     
     // Process noise standard deviation longitudinal acceleration in m/s^2
-    std_a_ = 0.3;
+    std_a_ = 3.0;
     
     // Process noise standard deviation yaw acceleration in rad/s^2
     std_yawdd_ = 0.3;
@@ -68,9 +68,6 @@ UKF::UKF() {
         weights_(i) = weight;
     }
     
-    //vector<VectorXd> NIS_lidar;
-    //vector<VectorXd> NIS_radar;
-    
 }
 
 UKF::~UKF() {}
@@ -86,6 +83,8 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
      Complete this function! Make sure you switch between lidar and radar
      measurements.
      */
+    
+    
     if (!is_initialized_){
         cout << "UKF: " << endl;
         x_ <<   0.0,0.0,0.0,0.0,0.0;
@@ -129,8 +128,8 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
     }
     
     // print the output
-    cout << "x_ = " << x_ << endl;
-    cout << "P_ = " << P_ << endl;
+    //cout << "x_ = " << x_ << endl;
+    //cout << "P_ = " << P_ << endl;
     
 }
 
@@ -237,66 +236,10 @@ void UKF::UpdateLidar(MeasurementPackage meas_package) {
      
      You'll also need to calculate the lidar NIS.
      */
+    
     /**
-    // 1) Find sigma point in the measurement space Zsig(2*15) by transforming Xsig_pred_
-    int n_z = 2;
-    MatrixXd Zsig = MatrixXd(n_z, 2*n_aug_+1);
-    for (int i=0 ; i<2*n_aug_+1; i++){
-        Zsig(0,i) = Xsig_pred_(0,i);
-        Zsig(1,i) = Xsig_pred_(1,i);
-    }
-    
-    // 2) Find measurement mean z(2*1) and convariance S(2*2) using Zsig with adding noise R(2*2)
-    VectorXd z_pred = VectorXd(n_z);
-    z_pred.fill(0.0);
-    for (int i=0 ; i<2*n_aug_+1; i++) {
-        z_pred = z_pred + weights_(i) * Zsig.col(i);
-    }
-    
-    MatrixXd S = MatrixXd(n_z,n_z);
-    S.fill(0.0);
-    for (int i=0 ; i<2*n_aug_+1; i++) {
-        VectorXd z_diff = Zsig.col(i) - z_pred;
-        S = S + weights_(i) * z_diff * z_diff.transpose();
-    }
-    //add measurement noise covariance matrix
-    MatrixXd R_laser_ = MatrixXd(2,2);
-    R_laser_ <<     std_laspx_*std_laspx_, 0,
-                    0, std_laspy_*std_laspy_;
-    
-    S = S + R_laser_;
-    
-    // 3) update x state and P covariance
-    //create matrix for cross correlation Tc(5*2)
-    MatrixXd Tc = MatrixXd(n_x_, n_z);
-    Tc.fill(0.0);
-    for (int i=0 ; i<2*n_aug_+1; i++) {
-        // measurement difference
-        VectorXd z_diff = Zsig.col(i) - z_pred;
-        // state difference
-        VectorXd x_diff = Xsig_pred_.col(i) - x_;
-        
-        Tc = Tc + weights_(i) * x_diff * z_diff.transpose();
-    }
-    
-    //Kalman gain K;
-    MatrixXd K = Tc * S.inverse();
-    
-    VectorXd z = VectorXd(n_z); // incoming Lidar measurement
-    z <<    meas_package.raw_measurements_[0],
-            meas_package.raw_measurements_[1];
-    
-    //residual
-    VectorXd z_diff = z - z_pred;
-    
-    //update state mean and covariance matrix
-    x_= x_ + K * z_diff;
-    P_ = P_ - K*S*K.transpose();
-    
-    //double epsilon = z_diff.transpose() * S.inverse() * z_diff;
-    //NIS_lidar.push_back(epsilon);
-    double NIS_lidar = z_diff.transpose() * S.inverse() * z_diff;
-    //NIS_lidar.push_back(epsilon);
+     Since this is linear process, so no need to apply UKF or EKF. The KF algorithm is enough
+     
     */
     int n_z = 2;
     MatrixXd H_ = MatrixXd(2,5);
@@ -325,6 +268,10 @@ void UKF::UpdateLidar(MeasurementPackage meas_package) {
     long x_size = x_.size();
     MatrixXd I = MatrixXd::Identity(x_size, x_size);
     P_ = (I - K * H_) * P_;
+    
+    double epsilon = y.transpose() * Si * y;
+    cout << "NIS_lidar: " << epsilon << endl;
+    NIS_lidar.push_back(epsilon);
     
 }
 
@@ -426,9 +373,10 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
     x_= x_ + K * z_diff;
     P_ = P_ - K*S*K.transpose();
     
-    //double epsilon = z_diff.transpose() * S.inverse() * z_diff;
-    //NIS_radar.push_back(epsilon);
+    double epsilon = z_diff.transpose() * S.inverse() * z_diff;
+    cout << "NIS_radar: " << epsilon << endl;
+    NIS_radar.push_back(epsilon);
     
-    double NIS_radar = z_diff.transpose() * S.inverse() * z_diff;
+    //double NIS_radar = z_diff.transpose() * S.inverse() * z_diff;
     //NIS_radar.push_back(epsilon);
 }
