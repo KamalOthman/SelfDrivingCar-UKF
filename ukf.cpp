@@ -184,7 +184,7 @@ void UKF::Prediction(double delta_t) {
                         delta_t*current_sig[6];
         
         VectorXd integral_part = VectorXd(n_x_);
-        if(current_sig[4] <= abs(0.001)){
+        if(abs(current_sig[4]) <= 0.001){
             integral_part <<    current_sig[2]*cos(current_sig[3])*delta_t,
                                 current_sig[2]*sin(current_sig[3])*delta_t,
                                 0,
@@ -231,7 +231,7 @@ void UKF::UpdateLidar(MeasurementPackage meas_package) {
      
      You'll also need to calculate the lidar NIS.
      */
-    
+    /**
     // 1) Find sigma point in the measurement space Zsig(2*15) by transforming Xsig_pred_
     int n_z = 2;
     MatrixXd Zsig = MatrixXd(n_z, 2*n_aug_+1);
@@ -291,6 +291,34 @@ void UKF::UpdateLidar(MeasurementPackage meas_package) {
     //NIS_lidar.push_back(epsilon);
     double NIS_lidar = z_diff.transpose() * S.inverse() * z_diff;
     //NIS_lidar.push_back(epsilon);
+    */
+    int n_z = 2;
+    MatrixXd H_ = MatrixXd(2,5);
+    H_ <<   1,0,0,0,0,
+            0,1,0,0,0;
+    
+    //add measurement noise covariance matrix
+    MatrixXd R_laser_ = MatrixXd(2,2);
+    R_laser_ <<     std_laspx_*std_laspx_, 0,
+                    0, std_laspy_*std_laspy_;
+    
+    VectorXd z = VectorXd(n_z); // incoming Lidar measurement
+    z <<    meas_package.raw_measurements_[0],
+            meas_package.raw_measurements_[1];
+    
+    VectorXd z_pred = H_ * x_;
+    VectorXd y = z - z_pred;
+    MatrixXd Ht = H_.transpose();
+    MatrixXd S = H_ * P_ * Ht + R_laser_;
+    MatrixXd Si = S.inverse();
+    MatrixXd PHt = P_ * Ht;
+    MatrixXd K = PHt * Si;
+    
+    //new estimate
+    x_ = x_ + (K * y);
+    long x_size = x_.size();
+    MatrixXd I = MatrixXd::Identity(x_size, x_size);
+    P_ = (I - K * H_) * P_;
     
 }
 
