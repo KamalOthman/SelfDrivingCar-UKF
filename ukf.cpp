@@ -26,10 +26,10 @@ UKF::UKF() {
     P_ = MatrixXd(5, 5);
     
     // Process noise standard deviation longitudinal acceleration in m/s^2
-    std_a_ = 0.030;
+    std_a_ = 0.3;
     
     // Process noise standard deviation yaw acceleration in rad/s^2
-    std_yawdd_ = 0.030;
+    std_yawdd_ = 0.3;
     
     //DO NOT MODIFY measurement noise values below these are provided by the sensor manufacturer.
     // Laser measurement noise standard deviation position1 in m
@@ -88,19 +88,19 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
      */
     if (!is_initialized_){
         cout << "UKF: " << endl;
-        x_ <<   1,1,1,1,1;
-        
-        P_ <<   1,0,0,0,0,
+        x_ <<   0.0,0.0,0.0,0.0,0.0;
+        P_.fill(0.1);
+        /*P_ <<   1,0,0,0,0,
                 0,1,0,0,0,
                 0,0,1,0,0,
                 0,0,0,1,0,
-                0,0,0,0,1;
+                0,0,0,0,1;*/
         
         if (meas_package.sensor_type_ == MeasurementPackage::RADAR) {
             double px = meas_package.raw_measurements_[0] * cos(meas_package.raw_measurements_[1]);
             double py = meas_package.raw_measurements_[0] * sin(meas_package.raw_measurements_[1]);
             
-            x_ << px, py, 0, 0, 0;
+            x_ << px, py, 0.0, 0.0, 0.0;
             
             time_us_ = meas_package.timestamp_;
         }
@@ -159,8 +159,8 @@ void UKF::Prediction(double delta_t) {
     P_aug.fill(0.0);
     P_aug.topLeftCorner(n_x_,n_x_) = P_;
     MatrixXd noise_matrix = MatrixXd(n_aug_ - n_x_, n_aug_ - n_x_);
-    noise_matrix << std_a_*std_a_, 0,
-                    0, std_yawdd_*std_yawdd_;
+    noise_matrix << pow(std_a_,2), 0.0,
+                    0.0, pow(std_yawdd_,2);
     P_aug.bottomRightCorner(n_aug_ - n_x_, n_aug_ - n_x_) = noise_matrix;
     MatrixXd L = P_aug.llt().matrixL(); // square root of augmented P
     
@@ -202,10 +202,15 @@ void UKF::Prediction(double delta_t) {
     }
     
     // 3) Predicting x state and P covariance using weights
+    VectorXd current_x_ = VectorXd(n_x_);
+    current_x_.fill(0.0);
     for (int i = 0; i<2*n_aug_+1; i++){
-        x_ = x_ + weights_(i) * Xsig_pred_.col(i);
+        current_x_ = current_x_ + weights_(i) * Xsig_pred_.col(i);
     }
+    x_ = current_x_;
     
+    MatrixXd current_P_ = MatrixXd(n_x_,n_x_);
+    current_P_.fill(0.0);
     for(int i = 0; i<2*n_aug_+1; i++){
         // state difference
         VectorXd x_diff = Xsig_pred_.col(i) - x_;
@@ -213,8 +218,9 @@ void UKF::Prediction(double delta_t) {
         while (x_diff(3)> M_PI) x_diff(3)-=2.*M_PI;
         while (x_diff(3)<-M_PI) x_diff(3)+=2.*M_PI;
         
-        P_ = P_ + weights_(i) * x_diff * x_diff.transpose();
+        current_P_ = current_P_ + weights_(i) * x_diff * x_diff.transpose();
     }
+    P_ = current_P_;
     
 }
 
